@@ -28,6 +28,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.regex.Pattern;
 
 import org.hibernate.AssertionFailure;
 import org.hibernate.MappingException;
@@ -48,6 +49,9 @@ import org.hibernate.type.Type;
 @SuppressWarnings("unchecked")
 public final class ReflectHelper {
 
+	private static final Pattern JAVA_CONSTANT_PATTERN = Pattern.compile(
+			"[a-z]+\\.([A-Z]{1}[a-z]+)+\\$?([A-Z]{1}[a-z]+)*\\.[A-Z_\\$]+" );
+
 	//TODO: this dependency is kinda Bad
 	private static final PropertyAccessor BASIC_PROPERTY_ACCESSOR = new BasicPropertyAccessor();
 	private static final PropertyAccessor DIRECT_PROPERTY_ACCESSOR = new DirectPropertyAccessor();
@@ -59,6 +63,7 @@ public final class ReflectHelper {
 
 	private static final Method OBJECT_EQUALS;
 	private static final Method OBJECT_HASHCODE;
+	private static boolean conventionalJavaConstants = true;
 
 	static {
 		Method eq;
@@ -276,6 +281,10 @@ public final class ReflectHelper {
 	public static Object getConstantValue(String name) {
 		Class clazz;
 		try {
+			if ( conventionalJavaConstants &&
+					!JAVA_CONSTANT_PATTERN.matcher( name ).find() ) {
+				return null;
+			}
 			clazz = classForName( StringHelper.qualifier( name ) );
 		}
 		catch ( Throwable t ) {
@@ -378,4 +387,7 @@ public final class ReflectHelper {
 		}
 	}
 
+	public static void setConventionalJavaConstants(boolean conventionalJavaConstants) {
+		ReflectHelper.conventionalJavaConstants = conventionalJavaConstants;
+	}
 }
